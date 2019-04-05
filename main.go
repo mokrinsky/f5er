@@ -49,6 +49,7 @@ func initialiseConfig() {
 	viper.BindEnv("passwd")
 	viper.BindEnv("debug")
 	viper.BindEnv("token")
+	viper.BindEnv("stats_show_zero_values")
 
 	viper.BindPFlag("f5", f5Cmd.PersistentFlags().Lookup("f5"))
 	viper.BindPFlag("debug", f5Cmd.PersistentFlags().Lookup("debug"))
@@ -135,6 +136,7 @@ func init() {
 	showCmd.AddCommand(showStackCmd)
 	showCmd.AddCommand(showCertCmd)
 	showCmd.AddCommand(showCertsCmd)
+	showCmd.AddCommand(showInterfaceCmd)
 
 	// add
 	f5Cmd.AddCommand(addCmd)
@@ -191,6 +193,7 @@ func init() {
 	statsCmd.AddCommand(statsVirtualCmd)
 	statsCmd.AddCommand(statsNodeCmd)
 	statsCmd.AddCommand(statsRuleCmd)
+	statsCmd.AddCommand(statsInterfaceCmd)
 
 	f5Cmd.AddCommand(uploadFileCmd)
 	f5Cmd.AddCommand(runCmd)

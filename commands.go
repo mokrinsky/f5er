@@ -1376,7 +1376,7 @@ func online() {
 
 func stats() {
 
-	fmt.Println("what sort of F5 object would you like stats for? (virtual, pool, node or rule)")
+	fmt.Println("what sort of F5 object would you like stats for? (virtual, pool, node, rule or interface)")
 
 	/*
 		err, res := appliance.Stats()
@@ -1391,4 +1391,55 @@ func stats() {
 		}
 	*/
 
+}
+
+var statsInterfaceCmd = &cobra.Command{
+	Use:   "interface",
+	Short: "show intreface statistics",
+	Long:  "show the current statistics of an interface",
+	Run: func(cmd *cobra.Command, args []string) {
+
+		if len(args) < 1 {
+			err, res := appliance.StatsInterfaces()
+			if err != nil {
+				log.Fatal(err)
+			}
+			for _, datapoint := range res {
+				fmt.Printf("%s\n", datapoint.String())
+			}
+		} else {
+			name := args[0]
+			err, res := appliance.StatsInterface(name)
+			if err != nil {
+				log.Fatal(err)
+			}
+			for _, datapoint := range res {
+				fmt.Printf("%s\n", datapoint.String())
+			}
+		}
+	},
+}
+
+var showInterfaceCmd = &cobra.Command{
+	Use:   "interface",
+	Short: "show an interface",
+	Long:  "show the current state of an interface",
+	Run: func(cmd *cobra.Command, args []string) {
+		if len(args) < 1 {
+			err, res := appliance.ShowInterfaces()
+			if err != nil {
+				log.Fatal(err)
+			}
+			for _, v := range res.Items {
+				fmt.Printf("%s\n", v.FullPath)
+			}
+		} else {
+			name := args[0]
+			err, res := appliance.ShowInterface(name)
+			if err != nil {
+				log.Fatal(err)
+			}
+			appliance.PrintObject(res)
+		}
+	},
 }

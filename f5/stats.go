@@ -73,6 +73,12 @@ func (f *Device) Stats() (error, []GraphiteDataPoint) {
 		return err, nil
 	}
 	data = append(data, rules...)
+
+	err, interfaces := f.StatsInterfaces()
+	if err != nil {
+		return err, nil
+	}
+	data = append(data, interfaces...)
 	return nil, data
 }
 
@@ -100,7 +106,6 @@ func (f *Device) StatsPool(pname string) (error, []GraphiteDataPoint) {
 	if err != nil {
 		return err, nil
 	} else {
-
 		for key := range res.Entries {
 
 			skey := prefix + poolname + "." + key
@@ -631,6 +636,104 @@ func (f *Device) StatsRules() (error, []GraphiteDataPoint) {
 			for key := range fnames {
 
 				skey := prefix + rulename + "." + fnames[key]
+				v := entries.Field(fnames[key])
+
+				if value, ok := v.Value().(LBStatsValue); ok {
+					if value.Value > 0 {
+						// only print value if it is greater than zero
+						dp := NewGraphiteDataPoint(skey, value.Value, timestamp)
+						data = append(data, dp)
+					} else if f.StatsShowZeroes {
+						// except if I really want it
+						dp := NewGraphiteDataPoint(skey, value.Value, timestamp)
+						data = append(data, dp)
+					}
+				}
+
+			}
+
+		}
+		//		elapsed := time.Since(start)
+		//		fmt.Printf("elapsed: %v\n", elapsed.Seconds())
+		return nil, data
+	}
+
+}
+
+func (f *Device) StatsInterface(rname string) (error, []GraphiteDataPoint) {
+
+	prefix := f.StatsPathPrefix + "interface."
+
+	data := make([]GraphiteDataPoint, 0, 1024)
+	start := time.Now()
+	timestamp := start.Unix()
+
+	err, res := f.ShowInterfaceStats(rname)
+	if err != nil {
+		return err, nil
+	} else {
+		for key := range res.Entries {
+
+			skey := prefix + rname + "." + key
+			var v interface{}
+			v = res.Entries[key]
+
+			if value, ok := v.(LBStatsValue); ok {
+				if value.Value > 0 {
+					// only print value if it is greater than zero
+					dp := NewGraphiteDataPoint(skey, value.Value, timestamp)
+					data = append(data, dp)
+				} else if f.StatsShowZeroes {
+					// except if I really want it
+					dp := NewGraphiteDataPoint(skey, value.Value, timestamp)
+					data = append(data, dp)
+				}
+			}
+
+		}
+
+		//		elapsed := time.Since(start)
+		//		fmt.Printf("elapsed: %v\n", elapsed.Seconds())
+		return nil, data
+
+	}
+
+}
+
+func (f *Device) StatsInterfaces() (error, []GraphiteDataPoint) {
+
+	data := make([]GraphiteDataPoint, 0, 4096)
+	start := time.Now()
+	timestamp := start.Unix()
+	err, res := f.ShowAllInterfaceStats()
+	if err != nil {
+		return err, nil
+	} else {
+
+		splitter := func(c rune) bool {
+			// split if "/" or "~"
+			return c == '\u002f' || c == '\u007e'
+
+		}
+
+		for surl, stats := range res.Entries {
+
+			fields := strings.FieldsFunc(surl, splitter)
+			partition := fields[5]
+			intname := fields[6]
+			if len(partition) < 1 || len(intname) < 1 {
+				fmt.Fprintf(os.Stderr, "warn: cannot parse partition and intname for rule given url: %s", surl)
+				continue
+			}
+
+			entries := structs.New(stats.NestedStats.Entries)
+			fnames := entries.Names()
+
+			prefix := f.StatsPathPrefix + partition + "."
+
+			for key := range fnames {
+
+				skey := prefix + intname + "." + fnames[key]
 				v := entries.Field(fnames[key])
 
 				if value, ok := v.Value().(LBStatsValue); ok {
